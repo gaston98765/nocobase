@@ -92,6 +92,8 @@ ctx.render(<span>{dayjs().format('YYYY-MM-DD')}</span>);
 
 ## Notes
 
+- JS Column runs in a restricted execution context. Some global browser APIs such as `Intl.NumberFormat(...)` and formatting via `ctx.i18n.t('intlNumber', ...)` are not available in this context.
+- For currency or number formatting, use a regular number field and configure the format in the field settings instead of relying on JS Column.
 - It is recommended to use a trusted CDN for loading external libraries and to have a fallback for failure scenarios (e.g., `if (!lib) return;`).
 - It is recommended to use `class` or `[name=...]` selectors instead of fixed `id`s to prevent duplicate `id`s across multiple blocks or modals.
 - Event Cleanup: Table rows can change dynamically with pagination or refresh, causing cells to re-render multiple times. You should clean up or deduplicate event listeners before binding them to avoid repeated triggers.
