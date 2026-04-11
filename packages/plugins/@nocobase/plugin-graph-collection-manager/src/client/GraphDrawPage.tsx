@@ -403,15 +403,37 @@ export const GraphDrawPage = React.memo(() => {
   const updatePositionAction = async (data, isbatch = false) => {
     if (!selectedCollections) {
       if (isbatch) {
-        await api.resource('graphPositions').update({
-          values: data,
-        });
+        const items = Array.isArray(data) ? data : [data];
+
+        for (const item of items) {
+          if (!item || typeof item !== 'object' || !item.collectionName) {
+            continue;
+          }
+
+          await api.resource('graphPositions').update({
+            filter: {
+              collectionName: item.collectionName,
+            },
+            values: {
+              x: item.x,
+              y: item.y,
+            },
+          });
+        }
       } else {
+        if (!data?.collectionName) return;
+
         await api.resource('graphPositions').update({
-          filter: { collectionName: data.collectionName },
-          values: { ...data },
+          filter: {
+            collectionName: data.collectionName,
+          },
+          values: {
+            x: data.x,
+            y: data.y,
+          },
         });
       }
+
       await refreshPositions();
     }
   };
