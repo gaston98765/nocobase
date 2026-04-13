@@ -118,7 +118,7 @@ const Preview = (props) => {
     }
   }, [list.length, previewOpen]);
   const onDownload = React.useCallback(
-    (fileOverride?: any) => {
+    async (fileOverride?: any) => {
       const file = fileOverride || list[current];
       if (!file) {
         return;
@@ -133,19 +133,31 @@ const Preview = (props) => {
         filename = `${filename}.${ext}`;
       }
       const downloadName = `${Date.now()}_${filename || 'file'}`;
-      // eslint-disable-next-line promise/catch-or-return
-      fetch(url)
-        .then((response) => response.blob())
-        .then((blob) => {
-          const blobUrl = URL.createObjectURL(new Blob([blob]));
-          const link = document.createElement('a');
-          link.href = blobUrl;
-          link.download = downloadName;
-          document.body.appendChild(link);
-          link.click();
+
+      try {
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error(`Download failed with status ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+
+        link.href = blobUrl;
+        link.download = downloadName;
+
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        setTimeout(() => {
           URL.revokeObjectURL(blobUrl);
-          link.remove();
-        });
+        }, 1000);
+      } catch (error) {
+        console.error('File download failed:', error);
+      }
     },
     [current, list],
   );
