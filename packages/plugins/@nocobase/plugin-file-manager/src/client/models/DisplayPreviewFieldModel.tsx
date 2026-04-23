@@ -9,7 +9,7 @@
 
 import { DetailsItemModel, FieldModel, TableColumnModel, css } from '@nocobase/client';
 import { tExpr, DisplayItemModel } from '@nocobase/flow-engine';
-import { Image, Space, Tooltip } from 'antd';
+import { Image, Space, Tooltip, message } from 'antd';
 import { castArray } from 'lodash';
 import React from 'react';
 import {
@@ -117,22 +117,31 @@ const Preview = (props) => {
       setPreviewOpen(false);
     }
   }, [list.length, previewOpen]);
+  const DOWNLOAD_REVOKE_DELAY = 1000; // delay to avoid revoking URL too early during download
+
   const onDownload = React.useCallback(
     async (fileOverride?: any) => {
       const file = fileOverride || list[current];
       if (!file) {
         return;
       }
+
       const url = file.url || file.preview;
       if (!url) {
         return;
       }
+
       let filename = getFileName(file, url);
       const ext = getFileExt(file, url);
+
       if (filename && ext && !filename.toLowerCase().endsWith(`.${ext}`)) {
         filename = `${filename}.${ext}`;
       }
+
       const downloadName = `${Date.now()}_${filename || 'file'}`;
+
+      let blobUrl: string | undefined;
+      let link: HTMLAnchorElement | undefined;
 
       try {
         const response = await fetch(url);
@@ -142,21 +151,27 @@ const Preview = (props) => {
         }
 
         const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        const link = document.createElement('a');
+        blobUrl = URL.createObjectURL(blob);
 
+        link = document.createElement('a');
         link.href = blobUrl;
         link.download = downloadName;
 
         document.body.appendChild(link);
         link.click();
-        link.remove();
-
-        setTimeout(() => {
-          URL.revokeObjectURL(blobUrl);
-        }, 1000);
       } catch (error) {
         console.error('File download failed:', error);
+        message.error('File download failed');
+      } finally {
+        if (link) {
+          link.remove();
+        }
+
+        if (blobUrl) {
+          setTimeout(() => {
+            URL.revokeObjectURL(blobUrl!);
+          }, DOWNLOAD_REVOKE_DELAY);
+        }
       }
     },
     [current, list],
